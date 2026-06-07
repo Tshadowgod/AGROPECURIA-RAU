@@ -1,0 +1,283 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  OWNER
+  ACCOUNTANT
+  ADMIN
+}
+
+enum PropertyStatus {
+  ACTIVE
+  INACTIVE
+  PENDING_REVIEW
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DocumentType {
+  CARNET_IDENTIDAD
+  NIT
+  TITULO_PROPIEDAD
+  CERTIFICACION
+  FORMULARIO_TRIBUTARIO
+  COMPROBANTE_PAGO
+  OTRO
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  PARTIAL
+}
+
+enum NotificationType {
+  VENCIMIENTO
+  VALIDACION
+  PAGO
+  OBSERVACION
+  SISTEMA
+}
+
+enum LandCategory {
+  PRIMERA_CLASE
+  SEGUNDA_CLASE
+  TERCERA_CLASE
+}
+
+enum Region {
+  ALTIPLANO
+  VALLES
+  LLANOS
+}
+
+enum ActivityType {
+  AGRICULTURA
+  GANADERIA
+  MIXTA
+  FORESTAL
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          UserRole  @default(OWNER)
+  phone         String?
+  address       String?
+  ci            String?   @unique
+  nit           String?   @unique
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+
+  properties    Property[]        @relation("OwnerProperties")
+  payments      Payment[]         @relation("OwnerPayments")
+  ownerDocs     Document[]        @relation("OwnerDocuments")
+  notifications Notification[]
+
+  clients    OwnerAccountant[] @relation("AccountantClients")
+  assignedTo OwnerAccountant[] @relation("OwnerAccountants")
+
+  auditLogs AuditLog[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OwnerAccountant {
+  id           String   @id @default(cuid())
+  ownerId      String
+  accountantId String
+  assignedAt   DateTime @default(now())
+  isActive     Boolean  @default(true)
+
+  owner      User @relation("OwnerAccountants", fields: [ownerId], references: [id])
+  accountant User @relation("AccountantClients", fields: [accountantId], references: [id])
+
+  @@unique([ownerId, accountantId])
+}
+
+model Property {
+  id              String         @id @default(cuid())
+  ownerId         String
+  name            String
+  location        String
+  municipality    String
+  department      String
+  area            Float
+  landCategory    LandCategory
+  region          Region
+  activityType    ActivityType
+  status          PropertyStatus @default(ACTIVE)
+  registrationNum String?        @unique
+  coordinates     String?
+  description     String?        @db.Text
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  owner    User             @relation("OwnerProperties", fields: [ownerId], references: [id])
+  rauCalcs RauCalculation[]
+  documents Document[]
+  payments  Payment[]
+}
+
+model TributaryRate {
+  id           String       @id @default(cuid())
+  year         Int
+  region       Region
+  landCategory LandCategory
+  activityType ActivityType
+  ratePerHa    Float
+  minHectares  Float        @default(0)
+  maxHectares  Float?
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  calculations RauCalculation[]
+
+  @@unique([year, region, landCategory, activityType])
+}
+
+model RauCalculation {
+  id          String        @id @default(cuid())
+  propertyId  String
+  rateId      String
+  year        Int
+  area        Float
+  baseAmount  Float
+  adjustments Float         @default(0)
+  totalAmount Float
+  dueDate     DateTime
+  status      PaymentStatus @default(PENDING)
+  notes       String?       @db.Text
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  property Property      @relation(fields: [propertyId], references: [id])
+  rate     TributaryRate @relation(fields: [rateId], references: [id])
+  payments Payment[]
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  propertyId    String
+  ownerId       String
+  calculationId String?
+  amount        Float
+  currency      String        @default("BOB")
+  status        PaymentStatus @default(PENDING)
+  paymentDate   DateTime?
+  dueDate       DateTime
+  receiptNumber String?
+  notes         String?       @db.Text
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  property    Property        @relation(fields: [propertyId], references: [id])
+  owner       User            @relation("OwnerPayments", fields: [ownerId], references: [id])
+  calculation RauCalculation? @relation(fields: [calculationId], references: [id])
+  documents   Document[]
+}
+
+model Document {
+  id           String         @id @default(cuid())
+  ownerId      String
+  propertyId   String?
+  paymentId    String?
+  type         DocumentType
+  name         String
+  fileName     String
+  fileUrl      String
+  fileSize     Int
+  mimeType     String
+  status       DocumentStatus @default(PENDING)
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  observations String?        @db.Text
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  owner    User      @relation("OwnerDocuments", fields: [ownerId], references: [id])
+  property Property? @relation(fields: [propertyId], references: [id])
+  payment  Payment?  @relation(fields: [paymentId], references: [id])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  isRead    Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  entity    String
+  entityId  String
+  oldValues Json?
+  newValues Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  category  String
+  updatedAt DateTime @updatedAt
+}
