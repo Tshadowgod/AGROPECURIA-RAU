@@ -1,40 +1,44 @@
-import NextAuth from "next-auth";
-import { authConfig } from "@/auth.config";
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-// Middleware Edge-compatible: solo usa authConfig (sin bcrypt ni Prisma)
-const { auth } = NextAuth(authConfig);
+export async function proxy(req: NextRequest) {
+  const path = req.nextUrl.pathname;
 
-export default auth((req) => {
-  const { nextUrl, auth: session } = req;
-  const isLoggedIn = !!session?.user;
-  const role = (session?.user as { role?: string })?.role;
-  const path = nextUrl.pathname;
+  const publicPaths = ["/", "/login", "/register"];
+  const isPublic = publicPaths.includes(path);
 
-  const publicRoutes = ["/", "/login", "/register"];
-  if (publicRoutes.includes(path)) {
-    // Redirigir al dashboard si ya está logueado
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  const isLoggedIn = !!token;
+  const role = token?.role as string | undefined;
+
+  if (isPublic) {
     if (isLoggedIn && (path === "/login" || path === "/register")) {
-      if (role === "OWNER") return Response.redirect(new URL("/owner", nextUrl));
-      if (role === "ACCOUNTANT") return Response.redirect(new URL("/accountant", nextUrl));
-      if (role === "ADMIN") return Response.redirect(new URL("/admin", nextUrl));
+      const dest = role === "OWNER" ? "/owner" : role === "ACCOUNTANT" ? "/accountant" : "/admin";
+      return NextResponse.redirect(new URL(dest, req.url));
     }
-    return;
+    return NextResponse.next();
   }
 
   if (!isLoggedIn) {
-    return Response.redirect(new URL("/login", nextUrl));
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   if (path.startsWith("/owner") && role !== "OWNER" && role !== "ADMIN") {
-    return Response.redirect(new URL("/login", nextUrl));
+    return NextResponse.redirect(new URL("/login", req.url));
   }
   if (path.startsWith("/accountant") && role !== "ACCOUNTANT" && role !== "ADMIN") {
-    return Response.redirect(new URL("/login", nextUrl));
+    return NextResponse.redirect(new URL("/login", req.url));
   }
   if (path.startsWith("/admin") && role !== "ADMIN") {
-    return Response.redirect(new URL("/login", nextUrl));
+    return NextResponse.redirect(new URL("/login", req.url));
   }
-});
+
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],

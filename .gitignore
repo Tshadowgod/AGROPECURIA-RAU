@@ -45,3 +45,5 @@ next-env.d.ts
 # Keep .env.example but ignore actual env files
 # Uncomment below to commit .env.example:
 # !.env.example
+
+.vercel
