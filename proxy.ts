@@ -1,38 +1,39 @@
-import { auth } from "@/lib/auth";
-import { NextResponse } from "next/server";
+import NextAuth from "next-auth";
+import { authConfig } from "@/auth.config";
 
-const publicRoutes = ["/login", "/register", "/"];
+// Middleware Edge-compatible: solo usa authConfig (sin bcrypt ni Prisma)
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const { nextUrl, auth: session } = req;
-  const isPublic = publicRoutes.includes(nextUrl.pathname);
+  const isLoggedIn = !!session?.user;
+  const role = (session?.user as { role?: string })?.role;
+  const path = nextUrl.pathname;
 
-  if (!session && !isPublic) {
-    return NextResponse.redirect(new URL("/login", nextUrl));
+  const publicRoutes = ["/", "/login", "/register"];
+  if (publicRoutes.includes(path)) {
+    // Redirigir al dashboard si ya está logueado
+    if (isLoggedIn && (path === "/login" || path === "/register")) {
+      if (role === "OWNER") return Response.redirect(new URL("/owner", nextUrl));
+      if (role === "ACCOUNTANT") return Response.redirect(new URL("/accountant", nextUrl));
+      if (role === "ADMIN") return Response.redirect(new URL("/admin", nextUrl));
+    }
+    return;
   }
 
-  if (session && (nextUrl.pathname === "/login" || nextUrl.pathname === "/register")) {
-    const role = session.user.role;
-    if (role === "OWNER") return NextResponse.redirect(new URL("/owner", nextUrl));
-    if (role === "ACCOUNTANT") return NextResponse.redirect(new URL("/accountant", nextUrl));
-    if (role === "ADMIN") return NextResponse.redirect(new URL("/admin", nextUrl));
+  if (!isLoggedIn) {
+    return Response.redirect(new URL("/login", nextUrl));
   }
 
-  // Role-based protection
-  if (session) {
-    const role = session.user.role;
-    if (nextUrl.pathname.startsWith("/owner") && role !== "OWNER" && role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/login", nextUrl));
-    }
-    if (nextUrl.pathname.startsWith("/accountant") && role !== "ACCOUNTANT" && role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/login", nextUrl));
-    }
-    if (nextUrl.pathname.startsWith("/admin") && role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/login", nextUrl));
-    }
+  if (path.startsWith("/owner") && role !== "OWNER" && role !== "ADMIN") {
+    return Response.redirect(new URL("/login", nextUrl));
   }
-
-  return NextResponse.next();
+  if (path.startsWith("/accountant") && role !== "ACCOUNTANT" && role !== "ADMIN") {
+    return Response.redirect(new URL("/login", nextUrl));
+  }
+  if (path.startsWith("/admin") && role !== "ADMIN") {
+    return Response.redirect(new URL("/login", nextUrl));
+  }
 });
 
 export const config = {
