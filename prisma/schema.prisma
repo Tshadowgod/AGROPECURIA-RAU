@@ -28,9 +28,23 @@ enum DocumentType {
   CARNET_IDENTIDAD
   NIT
   TITULO_PROPIEDAD
-  CERTIFICACION
-  FORMULARIO_TRIBUTARIO
+  CERTIFICADO_POSESION
+  PODER_NOTARIADO
+  ACTA_ASAMBLEA
+  PERSONERIA_JURIDICA
+  LICENCIA_FUNCIONAMIENTO
+  REGISTRO_SANITARIO
+  CERTIFICADO_USO_SUELO
+  LICENCIA_AMBIENTAL
+  REGISTRO_MUNICIPAL_AE
+  CERT_SANITARIO_AGROPECUARIO
+  CERT_INSPECCION_SEGURIDAD
+  REGISTRO_PRODUCTOR_AGROP
+  FORMULARIO_701
+  FORMULARIO_280
   COMPROBANTE_PAGO
+  CROQUIS_UBICACION
+  FACTURA_LUZ
   OTRO
 }
 
@@ -49,23 +63,48 @@ enum NotificationType {
   SISTEMA
 }
 
-enum LandCategory {
-  PRIMERA_CLASE
-  SEGUNDA_CLASE
-  TERCERA_CLASE
-}
-
-enum Region {
-  ALTIPLANO
+// Zona RAU oficial según DS 24463
+enum ZonaRAU {
+  ALTIPLANO_PUNA
   VALLES
-  LLANOS
+  SUBTROPICAL
+  TROPICAL
 }
 
-enum ActivityType {
-  AGRICULTURA
-  GANADERIA
-  MIXTA
-  FORESTAL
+// Subzonas oficiales RAU
+enum SubzonaRAU {
+  // Altiplano y Puna
+  NORTE_RIBERANA_TITICACA
+  NORTE_CON_TITICACA
+  NORTE_SIN_TITICACA
+  CENTRAL_CON_POOPO
+  CENTRAL_SIN_POOPO
+  SUR_SEMIDESERTICA
+  SUR_ANDINA_PUNA
+  // Valles
+  VALLES_ABT_CBB_RIEGO
+  VALLES_ABT_CBB_SECANO
+  VALLES_ABT_CBB_VITICOLA
+  OTROS_VALLES_RIEGO
+  OTROS_VALLES_SECANO
+  OTROS_VALLES_VITICOLA
+  VALLES_CERR_SERRANIAS
+  VALLES_CERR_OTROS_RIEGO
+  VALLES_CERR_OTROS_SECANO
+  VALLES_CERR_OTROS_VITICOLA
+  CABECERAS_VALLE_SECANO
+  // Subtropical
+  YUNGAS
+  SANTA_CRUZ
+  CHACO
+  // Tropical
+  BENI_PANDO_ITURRALDE
+}
+
+// Tipo de actividad RAU
+enum TipoActividadRAU {
+  AGRICOLA_OTROS  // Agrícola + Avicultura, Apicultura, Floricultura, Cunicultura, Piscicultura
+  PECUARIA
 }
 
 model User {
@@ -145,57 +184,61 @@ model Property {
   location        String
   municipality    String
   department      String
-  area            Float
-  landCategory    LandCategory
-  region          Region
-  activityType    ActivityType
+  area            Float          // hectáreas totales
+  zona            ZonaRAU
+  subzona         SubzonaRAU
+  tipoActividad   TipoActividadRAU
+  produccion      String?        // Ej: "Soya", "Caña de azúcar", "Ganadería vacuna"
   status          PropertyStatus @default(ACTIVE)
   registrationNum String?        @unique
+  tituloPropiedad String?        // N° de título de propiedad
   coordinates     String?
   description     String?        @db.Text
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  owner    User             @relation("OwnerProperties", fields: [ownerId], references: [id])
-  rauCalcs RauCalculation[]
+  owner     User             @relation("OwnerProperties", fields: [ownerId], references: [id])
+  rauCalcs  RauCalculation[]
   documents Document[]
   payments  Payment[]
 }
 
 model TributaryRate {
-  id           String       @id @default(cuid())
-  year         Int
-  region       Region
-  landCategory LandCategory
-  activityType ActivityType
-  ratePerHa    Float
-  minHectares  Float        @default(0)
-  maxHectares  Float?
-  isActive     Boolean      @default(true)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id            String           @id @default(cuid())
+  year          Int
+  zona          ZonaRAU
+  subzona       SubzonaRAU
+  tipoActividad TipoActividadRAU
+  ratePerHa     Float            // Bs/ha
+  minHectareas  Float
+  maxHectareas  Float
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   calculations RauCalculation[]
 
-  @@unique([year, region, landCategory, activityType])
+  @@unique([year, subzona, tipoActividad])
 }
 
 model RauCalculation {
-  id          String        @id @default(cuid())
-  propertyId  String
-  rateId      String
-  year        Int
-  area        Float
-  baseAmount  Float
-  adjustments Float         @default(0)
-  totalAmount Float
-  dueDate     DateTime
-  status      PaymentStatus @default(PENDING)
-  notes       String?       @db.Text
-  approvedBy  String?
-  approvedAt  DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id           String        @id @default(cuid())
+  propertyId   String
+  rateId       String
+  gestion      Int           // año fiscal
+  hectareas    Float         // ha declaradas
+  areaNoAprov  Float         @default(0) // Área no aprovechable (Form 701 campo)
+  baseAmount   Float         // hectareas * ratePerHa
+  totalAmount  Float         // total a pagar
+  dueDate      DateTime      // 31 octubre de la gestión
+  status       PaymentStatus @default(PENDING)
+  esNoImponible Boolean      @default(false)
+  notes        String?       @db.Text
+  approvedBy   String?
+  approvedAt   DateTime?
+  formulario   String        @default("701 V.3")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   property Property      @relation(fields: [propertyId], references: [id])
   rate     TributaryRate @relation(fields: [rateId], references: [id])
@@ -211,8 +254,9 @@ model Payment {
   currency      String        @default("BOB")
   status        PaymentStatus @default(PENDING)
   paymentDate   DateTime?
-  dueDate       DateTime
+  dueDate       DateTime      // 31 octubre
   receiptNumber String?
+  entidadPago   String?       // banco donde se pagó
   notes         String?       @db.Text
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt

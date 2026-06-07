@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { calculateRau } from "@/lib/rau-calculator";
+import { calcularRAU, type SubzonaRAU, type TipoActividadRAU } from "@/lib/rau-calculator";
 import { z } from "zod";
 
 const simSchema = z.object({
-  region: z.enum(["ALTIPLANO", "VALLES", "LLANOS"]),
-  landCategory: z.enum(["PRIMERA_CLASE", "SEGUNDA_CLASE", "TERCERA_CLASE"]),
-  activityType: z.enum(["AGRICULTURA", "GANADERIA", "MIXTA", "FORESTAL"]),
-  area: z.number().positive(),
-  year: z.number().optional(),
+  subzona: z.string(),
+  tipoActividad: z.enum(["AGRICOLA_OTROS", "PECUARIA"]),
+  hectareas: z.number().positive(),
+  gestion: z.number().optional(),
 });
 
 export async function POST(req: Request) {
@@ -20,54 +19,43 @@ export async function POST(req: Request) {
   const { propertyId, simulate, ...params } = body;
 
   const data = simSchema.parse(params);
-  const result = calculateRau(
-    data.region,
-    data.landCategory,
-    data.activityType,
-    data.area,
-    data.year
+  const result = calcularRAU(
+    data.subzona as SubzonaRAU,
+    data.tipoActividad as TipoActividadRAU,
+    data.hectareas,
+    data.gestion
   );
 
-  if (simulate) {
-    return NextResponse.json(result);
-  }
+  if (simulate) return NextResponse.json(result);
 
   if (!propertyId) {
     return NextResponse.json({ error: "propertyId requerido" }, { status: 400 });
   }
 
-  // Find or create rate
   let rate = await prisma.tributaryRate.findFirst({
     where: {
-      year: result.year,
-      region: data.region,
-      landCategory: data.landCategory,
-      activityType: data.activityType,
+      year: result.gestion,
+      subzona: data.subzona as SubzonaRAU,
+      tipoActividad: data.tipoActividad,
       isActive: true,
     },
   });
 
   if (!rate) {
-    rate = await prisma.tributaryRate.create({
-      data: {
-        year: result.year,
-        region: data.region,
-        landCategory: data.landCategory,
-        activityType: data.activityType,
-        ratePerHa: result.ratePerHa,
-      },
-    });
+    return NextResponse.json({ error: "Tasa no encontrada para esta zona/actividad" }, { status: 400 });
   }
 
   const calc = await prisma.rauCalculation.create({
     data: {
       propertyId,
       rateId: rate.id,
-      year: result.year,
-      area: data.area,
-      baseAmount: result.baseAmount,
-      totalAmount: result.totalAmount,
-      dueDate: result.dueDate,
+      gestion: result.gestion,
+      hectareas: data.hectareas,
+      baseAmount: result.montoBase,
+      totalAmount: result.montoTotal,
+      dueDate: result.vencimiento,
+      esNoImponible: result.esNoImponible,
+      status: result.esNoImponible ? "PENDING" : "PENDING",
     },
   });
 

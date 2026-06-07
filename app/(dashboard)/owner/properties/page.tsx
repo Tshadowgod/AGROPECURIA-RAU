@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Plus, Eye, Pencil } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import Link from "next/link";
-import { getLandCategoryLabel, getRegionLabel, getActivityLabel } from "@/lib/rau-calculator";
+import { ZONAS_LABEL, ACTIVIDAD_LABEL, TABLA_RAU_2024, type ZonaRAU, type SubzonaRAU, type TipoActividadRAU } from "@/lib/rau-calculator";
 
 export default async function PropertiesPage() {
   const session = await auth();
@@ -72,16 +72,20 @@ export default async function PropertiesPage() {
                   <span className="text-stone-700 font-medium">{prop.area} ha</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-500">Región</span>
-                  <span className="text-stone-700 font-medium">{getRegionLabel(prop.region)}</span>
+                  <span className="text-stone-500">Zona</span>
+                  <span className="text-stone-700 font-medium">{ZONAS_LABEL[prop.zona as ZonaRAU]}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-500">Categoría</span>
-                  <span className="text-stone-700 font-medium">{getLandCategoryLabel(prop.landCategory)}</span>
+                  <span className="text-stone-500">Subzona</span>
+                  <span className="text-stone-700 font-medium text-xs">{TABLA_RAU_2024.find((r) => r.subzona === prop.subzona)?.subzonaLabel ?? prop.subzona}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-stone-500">Producción</span>
+                  <span className="text-stone-700 font-medium">{prop.produccion ?? "—"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-stone-500">Actividad</span>
-                  <span className="text-stone-700 font-medium">{getActivityLabel(prop.activityType)}</span>
+                  <span className="text-stone-700 font-medium">{prop.tipoActividad === "AGRICOLA_OTROS" ? "Agrícola / Otros" : "Pecuaria"}</span>
                 </div>
               </div>
 

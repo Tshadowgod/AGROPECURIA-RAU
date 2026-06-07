@@ -9,10 +9,12 @@ const createSchema = z.object({
   municipality: z.string().min(2),
   department: z.string().min(2),
   area: z.number().positive(),
-  landCategory: z.enum(["PRIMERA_CLASE", "SEGUNDA_CLASE", "TERCERA_CLASE"]),
-  region: z.enum(["ALTIPLANO", "VALLES", "LLANOS"]),
-  activityType: z.enum(["AGRICULTURA", "GANADERIA", "MIXTA", "FORESTAL"]),
+  zona: z.enum(["ALTIPLANO_PUNA", "VALLES", "SUBTROPICAL", "TROPICAL"]),
+  subzona: z.string().min(1),
+  tipoActividad: z.enum(["AGRICOLA_OTROS", "PECUARIA"]),
+  produccion: z.string().optional(),
   registrationNum: z.string().optional(),
+  tituloPropiedad: z.string().optional(),
   coordinates: z.string().optional(),
   description: z.string().optional(),
 });
@@ -27,15 +29,13 @@ export async function GET(req: Request) {
   const where =
     session.user.role === "OWNER"
       ? { ownerId: session.user.id }
-      : session.user.role === "ACCOUNTANT"
-      ? ownerId ? { ownerId } : {}
       : ownerId ? { ownerId } : {};
 
   const properties = await prisma.property.findMany({
     where,
     include: {
       owner: { select: { name: true, email: true } },
-      _count: { select: { payments: true, documents: true } },
+      _count: { select: { payments: true, documents: true, rauCalcs: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
   const data = createSchema.parse(body);
 
   const property = await prisma.property.create({
-    data: { ...data, ownerId: session.user.id },
+    data: { ...data, ownerId: session.user.id } as Parameters<typeof prisma.property.create>[0]["data"],
   });
 
   await prisma.auditLog.create({
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       action: "CREATE",
       entity: "Property",
       entityId: property.id,
-      newValues: data,
+      newValues: JSON.parse(JSON.stringify(data)),
     },
   });
 

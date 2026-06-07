@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download, FileText, BarChart3 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { getLandCategoryLabel, getRegionLabel, getActivityLabel } from "@/lib/rau-calculator";
+import { ZONAS_LABEL, TABLA_RAU_2024, type ZonaRAU } from "@/lib/rau-calculator";
 
 export default async function ReportsPage() {
   const session = await auth();
@@ -95,9 +95,9 @@ export default async function ReportsPage() {
                   return (
                     <tr key={prop.id} className="border-b border-stone-100">
                       <td className="py-2 pr-4 font-medium text-stone-800">{prop.name}</td>
-                      <td className="py-2 pr-4 text-stone-600">{getRegionLabel(prop.region)}</td>
+                      <td className="py-2 pr-4 text-stone-600">{ZONAS_LABEL[prop.zona as ZonaRAU]}</td>
                       <td className="py-2 pr-4 text-stone-600">{prop.area} ha</td>
-                      <td className="py-2 pr-4 text-stone-600">{getActivityLabel(prop.activityType)}</td>
+                      <td className="py-2 pr-4 text-stone-600">{prop.tipoActividad === "AGRICOLA_OTROS" ? "Agrícola/Otros" : "Pecuaria"}</td>
                       <td className="py-2 pr-4 text-right text-stone-600">{prop.rauCalcs.length}</td>
                       <td className="py-2 text-right font-bold text-green-700">{formatCurrency(totalRau)}</td>
                     </tr>
