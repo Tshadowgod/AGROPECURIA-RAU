@@ -2,6 +2,8 @@ import type { NextAuthConfig } from "next-auth";
 
 // Edge-compatible: sin imports de @prisma/client, bcryptjs ni Prisma
 export const authConfig: NextAuthConfig = {
+  trustHost: true,
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: "/login",
     error: "/login",
