@@ -20,7 +20,7 @@ export default async function AccountantDashboard() {
         include: {
           properties: {
             include: {
-              payments: { where: { status: "PENDING" } },
+              payments: { where: { status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } } },
               documents: { where: { status: "PENDING" } },
             },
           },

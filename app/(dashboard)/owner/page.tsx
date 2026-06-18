@@ -4,7 +4,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, CreditCard, FileText, AlertTriangle, TrendingUp, CheckCircle } from "lucide-react";
-import { formatCurrency, formatDate, daysUntilDue } from "@/lib/utils";
+import { formatCurrency, formatDate, daysUntilDue, effectivePaymentStatus } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -21,7 +21,6 @@ export default async function OwnerDashboard() {
       where: { ownerId: userId },
       include: { property: { select: { name: true } } },
       orderBy: { dueDate: "asc" },
-      take: 5,
     }),
     prisma.document.findMany({
       where: { ownerId: userId },
@@ -35,9 +34,14 @@ export default async function OwnerDashboard() {
     }),
   ]);
 
-  const pendingPayments = payments.filter((p) => p.status === "PENDING" || p.status === "OVERDUE");
+  const paymentsEff = payments.map((p) => ({
+    ...p,
+    status: effectivePaymentStatus(p.status, p.dueDate),
+  }));
+  const recentPayments = paymentsEff.slice(0, 5);
+  const pendingPayments = paymentsEff.filter((p) => p.status === "PENDING" || p.status === "OVERDUE");
   const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
-  const overdueCount = payments.filter((p) => p.status === "OVERDUE").length;
+  const overdueCount = paymentsEff.filter((p) => p.status === "OVERDUE").length;
   const pendingDocs = documents.filter((d) => d.status === "PENDING").length;
 
   const paymentStatusVariant = (status: string) => {
@@ -169,14 +173,14 @@ export default async function OwnerDashboard() {
             </Link>
           </CardHeader>
           <CardContent>
-            {payments.length === 0 ? (
+            {recentPayments.length === 0 ? (
               <div className="text-center py-8">
                 <CreditCard className="w-10 h-10 text-stone-300 mx-auto mb-3" />
                 <p className="text-stone-500 text-sm">No hay pagos registrados</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {payments.map((payment) => {
+                {recentPayments.map((payment) => {
                   const days = daysUntilDue(payment.dueDate);
                   return (
                     <div key={payment.id} className="flex items-center justify-between p-3 rounded-lg border border-stone-100">

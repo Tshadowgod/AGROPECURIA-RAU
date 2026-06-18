@@ -46,6 +46,21 @@ export function isOverdue(dueDate: Date | string): boolean {
   return new Date(dueDate) < new Date();
 }
 
+/**
+ * Estado efectivo de un pago. Una obligación no pagada cuyo vencimiento
+ * ya pasó se considera VENCIDA aunque en la BD figure como PENDING.
+ */
+export function effectivePaymentStatus(
+  status: string,
+  dueDate: Date | string
+): string {
+  if (status === "PAID" || status === "OVERDUE") return status;
+  if ((status === "PENDING" || status === "PARTIAL") && isOverdue(dueDate)) {
+    return "OVERDUE";
+  }
+  return status;
+}
+
 export function daysUntilDue(dueDate: Date | string): number {
   const diff = new Date(dueDate).getTime() - new Date().getTime();
   return Math.ceil(diff / (1000 * 60 * 60 * 24));

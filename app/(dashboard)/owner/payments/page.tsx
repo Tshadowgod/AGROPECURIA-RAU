@@ -4,16 +4,18 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { CreditCard, Clock, CheckCircle, AlertTriangle } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, effectivePaymentStatus } from "@/lib/utils";
 
 export default async function PaymentsPage() {
   const session = await auth();
 
-  const payments = await prisma.payment.findMany({
-    where: { ownerId: session!.user.id },
-    include: { property: { select: { name: true } }, calculation: true },
-    orderBy: { dueDate: "asc" },
-  });
+  const payments = (
+    await prisma.payment.findMany({
+      where: { ownerId: session!.user.id },
+      include: { property: { select: { name: true } }, calculation: true },
+      orderBy: { dueDate: "asc" },
+    })
+  ).map((p) => ({ ...p, status: effectivePaymentStatus(p.status, p.dueDate) }));
 
   const total = payments.reduce((s, p) => s + p.amount, 0);
   const paid = payments.filter((p) => p.status === "PAID").reduce((s, p) => s + p.amount, 0);
