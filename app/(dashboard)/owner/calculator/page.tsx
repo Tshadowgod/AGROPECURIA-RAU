@@ -88,7 +88,7 @@ export default function CalculatorPage() {
                   onChange={(e) => setGestion(e.target.value)}
                   className="w-full px-3 py-2 text-sm rounded-lg border border-stone-300 focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
-                  {[2024, 2023, 2022].map((y) => (
+                  {[2026, 2025, 2024].map((y) => (
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
@@ -264,7 +264,7 @@ export default function CalculatorPage() {
       {/* Tabla oficial completa */}
       <Card>
         <CardHeader>
-          <CardTitle>Tabla Oficial de Cuotas — Gestión 2024</CardTitle>
+          <CardTitle>Tabla Oficial de Cuotas — Gestión 2026</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">

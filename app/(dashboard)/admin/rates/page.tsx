@@ -8,7 +8,7 @@ export default function RatesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-stone-800">Tabla de Tasas RAU 2024</h2>
+        <h2 className="text-2xl font-bold text-stone-800">Tabla de Tasas RAU 2026</h2>
         <p className="text-stone-500 text-sm">
           Cuotas fijas por hectárea — Anexo II DS 24463 actualizado por RND
         </p>

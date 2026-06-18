@@ -1,4 +1,4 @@
-// Tabla oficial RAU 2024 — DS 24463 y actualizaciones por RND
+// Tabla oficial RAU — Gestión 2026 (DS 24463 y actualizaciones por RND)
 
 export type ZonaRAU = "ALTIPLANO_PUNA" | "VALLES" | "SUBTROPICAL" | "TROPICAL";
 
@@ -44,7 +44,7 @@ export interface TasaRAU {
   tasaPecuaria: number; // Bs/ha
 }
 
-// Tabla oficial RAU — Gestión 2024 (Anexo II DS 24463 actualizado)
+// Tabla oficial RAU — Gestión 2026 (Anexo II DS 24463 actualizado)
 export const TABLA_RAU_2024: TasaRAU[] = [
   // ─── ZONA ALTIPLANO Y PUNA ─────────────────────────────────────────────
   {

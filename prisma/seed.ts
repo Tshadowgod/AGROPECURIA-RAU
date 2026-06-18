@@ -135,10 +135,10 @@ async function main() {
 
   for (const t of tasas2024) {
     await prisma.tributaryRate.upsert({
-      where: { year_subzona_tipoActividad: { year: 2024, subzona: t.subzona, tipoActividad: t.act } },
+      where: { year_subzona_tipoActividad: { year: 2026, subzona: t.subzona, tipoActividad: t.act } },
       update: {},
       create: {
-        year: 2024,
+        year: 2026,
         zona: zonaMap[t.subzona],
         subzona: t.subzona,
         tipoActividad: t.act,
@@ -148,13 +148,13 @@ async function main() {
       },
     });
   }
-  console.log("✅ Tasas RAU 2024 cargadas (tabla oficial DS 24463)");
+  console.log("✅ Tasas RAU 2026 cargadas (tabla oficial DS 24463)");
 
   // ── Propiedades NutriAgro SRL ──────────────────────────────────────────
   // NutriAgro SRL: Soya 75 ha — Santa Cruz, Zona Subtropical subzona Santa Cruz
   // RAU = 75 × 35.51 = 2,663.25 Bs
   const propSoya = await prisma.property.upsert({
-    where: { registrationNum: "REG-SCZ-2024-001" },
+    where: { registrationNum: "REG-SCZ-2026-001" },
     update: {},
     create: {
       ownerId: owner.id,
@@ -168,15 +168,15 @@ async function main() {
       tipoActividad: "AGRICOLA_OTROS",
       produccion: "Soya",
       status: "ACTIVE",
-      registrationNum: "REG-SCZ-2024-001",
-      tituloPropiedad: "Escritura Pública N.º 245/2024",
+      registrationNum: "REG-SCZ-2026-001",
+      tituloPropiedad: "Escritura Pública N.º 245/2026",
       description: "Predio agropecuario de 75 ha destinadas a producción de soya. NutriAgro SRL, Lic. LF-AGRO-SCZ-2025-018.",
     },
   });
 
   // Segunda propiedad — ganadería
   const propGanaderia = await prisma.property.upsert({
-    where: { registrationNum: "REG-SCZ-2024-002" },
+    where: { registrationNum: "REG-SCZ-2026-002" },
     update: {},
     create: {
       ownerId: owner.id,
@@ -190,17 +190,17 @@ async function main() {
       tipoActividad: "PECUARIA",
       produccion: "Ganadería vacuna",
       status: "ACTIVE",
-      registrationNum: "REG-SCZ-2024-002",
+      registrationNum: "REG-SCZ-2026-002",
       description: "Estancia ganadera con 250 cabezas de ganado bovino.",
     },
   });
 
   // ── Cálculos RAU ──────────────────────────────────────────────────────
   const rateSoya = await prisma.tributaryRate.findFirst({
-    where: { year: 2024, subzona: "SANTA_CRUZ", tipoActividad: "AGRICOLA_OTROS" },
+    where: { year: 2026, subzona: "SANTA_CRUZ", tipoActividad: "AGRICOLA_OTROS" },
   });
   const rateGanad = await prisma.tributaryRate.findFirst({
-    where: { year: 2024, subzona: "SANTA_CRUZ", tipoActividad: "PECUARIA" },
+    where: { year: 2026, subzona: "SANTA_CRUZ", tipoActividad: "PECUARIA" },
   });
 
   // Soya: 75 ha × 35.51 = 2,663.25 Bs
@@ -209,12 +209,12 @@ async function main() {
       data: {
         propertyId: propSoya.id,
         rateId: rateSoya.id,
-        gestion: 2024,
+        gestion: 2026,
         hectareas: 75,
         areaNoAprov: 0,
         baseAmount: 75 * 35.51,
         totalAmount: 75 * 35.51,
-        dueDate: new Date("2024-10-31"),
+        dueDate: new Date("2026-10-31"),
         status: "PENDING",
         formulario: "701 V.3",
       },
@@ -226,7 +226,7 @@ async function main() {
         ownerId: owner.id,
         calculationId: calcSoya.id,
         amount: 2663.25,
-        dueDate: new Date("2024-10-31"),
+        dueDate: new Date("2026-10-31"),
         status: "PENDING",
         currency: "BOB",
       },
@@ -239,16 +239,16 @@ async function main() {
       data: {
         propertyId: propGanaderia.id,
         rateId: rateGanad.id,
-        gestion: 2023,
+        gestion: 2025,
         hectareas: 650,
         areaNoAprov: 0,
         baseAmount: 650 * 2.61,
         totalAmount: 650 * 2.61,
-        dueDate: new Date("2023-10-31"),
+        dueDate: new Date("2025-10-31"),
         status: "PAID",
         formulario: "701 V.3",
         approvedBy: accountant.id,
-        approvedAt: new Date("2023-10-20"),
+        approvedAt: new Date("2025-10-20"),
       },
     });
 
@@ -258,10 +258,10 @@ async function main() {
         ownerId: owner.id,
         calculationId: calcGanad.id,
         amount: 1696.50,
-        dueDate: new Date("2023-10-31"),
-        paymentDate: new Date("2023-10-20"),
+        dueDate: new Date("2025-10-31"),
+        paymentDate: new Date("2025-10-20"),
         status: "PAID",
-        receiptNumber: "REC-2023-0731",
+        receiptNumber: "REC-2025-0731",
         entidadPago: "Banco Unión S.A.",
         currency: "BOB",
       },
@@ -278,7 +278,7 @@ async function main() {
     { type: "CERTIFICADO_USO_SUELO", name: "Cert. Uso de Suelo CUS-2025-124", status: "PENDING" },
     { type: "LICENCIA_AMBIENTAL", name: "Licencia Ambiental LA-2025-089", status: "PENDING" },
     { type: "REGISTRO_PRODUCTOR_AGROP", name: "Registro Productor RPA-2025-221", status: "PENDING" },
-    { type: "FORMULARIO_701", name: "Form. 701 V.3 — Gestión 2024", status: "PENDING" },
+    { type: "FORMULARIO_701", name: "Form. 701 V.3 — Gestión 2026", status: "PENDING" },
   ] as const;
 
   for (const doc of docsNutriAgro) {
@@ -304,7 +304,7 @@ async function main() {
         userId: owner.id,
         type: "VENCIMIENTO",
         title: "Vencimiento RAU — 31 de octubre",
-        message: "El pago del Formulario 701 V.3 de Hacienda La Esperanza (Soya) vence el 31 de octubre de 2024. Monto: Bs. 2,663.25",
+        message: "El pago del Formulario 701 V.3 de Hacienda La Esperanza (Soya) vence el 31 de octubre de 2026. Monto: Bs. 2,663.25",
         isRead: false,
       },
       {
@@ -317,8 +317,8 @@ async function main() {
       {
         userId: owner.id,
         type: "PAGO",
-        title: "Pago registrado — Gestión 2023",
-        message: "Se confirmó el pago RAU de Estancia Los Pinos (Gestión 2023) por Bs. 1,696.50 en Banco Unión.",
+        title: "Pago registrado — Gestión 2025",
+        message: "Se confirmó el pago RAU de Estancia Los Pinos (Gestión 2025) por Bs. 1,696.50 en Banco Unión.",
         isRead: true,
       },
     ],

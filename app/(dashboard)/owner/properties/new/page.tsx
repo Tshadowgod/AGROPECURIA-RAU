@@ -174,8 +174,8 @@ export default function NewPropertyPage() {
           <div>
             <h3 className="font-semibold text-stone-800 mb-4">Datos Legales</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input label="N° Título de Propiedad" name="tituloPropiedad" placeholder="Escritura Pública N.º 245/2024" />
-              <Input label="N° Registro" name="registrationNum" placeholder="REG-SCZ-2024-001" />
+              <Input label="N° Título de Propiedad" name="tituloPropiedad" placeholder="Escritura Pública N.º 245/2026" />
+              <Input label="N° Registro" name="registrationNum" placeholder="REG-SCZ-2026-001" />
               <Input label="Coordenadas GPS" name="coordinates" placeholder="-17.5, -63.5" />
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-stone-700 mb-1">Descripción</label>
